@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>Nextcontents - AI와 감성 사이의 콘텐츠</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-white text-[#111827] antialiased">
+
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // --- SVGs & Icons ---
+    const LogoIcon = () => (
+      <svg className="w-8 h-8 text-[#A78BFA]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="currentColor" />
+        <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+
+    const PlayIcon = () => (
+      <svg className="w-12 h-12 text-white" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M8 5V19L19 12L8 5Z" />
+      </svg>
+    );
+
+    const CheckIcon = () => (
+      <svg className="w-6 h-6 text-[#A78BFA]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+      </svg>
+    );
+
+    function App() {
+      const [isMenuOpen, setIsMenuOpen] = useState(false);
+      const [activeSection, setActiveSection] = useState('home');
+      const [isSubmitting, setIsSubmitting] = useState(false); // 가동 중 로딩 상태
+      const [isSubmitted, setIsSubmitted] = useState(false);
+      const [validationError, setValidationError] = useState('');
+      const [portfolioFilter, setPortfolioFilter] = useState('All');
+      
+      const [formData, setFormData] = useState({
+        company: '',
+        name: '',
+        email: '',
+        phone: '',
+        service: '회사홍보 영상',
+        message: '',
+      });
+
+      // Cindy님의 구글 앱스스크립트 웹앱 URL 연동
+      const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyLDzEVzjUVio5mbeFbdsweJNWtSdNhTfVLnfh7tNXUib7vSaIb0JRQLyKqoOGdyFEv/exec";
+
+      const portfolioData = [
+        {
+          id: 1,
+          category: 'Video',
+          title: '글로벌 테크 스타트업 브랜딩 영상',
+          desc: 'AI 기반 협업 툴의 핵심 가치와 기업 스토리를 감성적으로 연출한 브랜드 필름',
+          image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=800&q=80',
+          videoUrl: '#',
+          tag: '회사홍보'
+        },
+        {
+          id: 2,
+          category: 'Video',
+          title: '차세대 친환경 모빌리티 제품 소개',
+          desc: '제품의 독자적인 3D 메커니즘을 감각적인 모션 그래픽과 시네마틱 컷으로 전달',
+          image: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=800&q=80',
+          videoUrl: '#',
+          tag: '제품홍보'
+        },
+        {
+          id: 3,
+          category: 'AI',
+          title: '금융 대기업 생성형 AI 도입 전략 컨설팅',
+          desc: '기획 및 마케팅 부서의 효율을 200% 개선시킨 생성형 AI 워크플로우 진단 사례',
+          image: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=800&q=80',
+          videoUrl: '#',
+          tag: 'AI 컨설팅'
+        },
+        {
+          id: 4,
+          category: 'Education',
+          title: '대기업 실무자를 위한 GPTs 설계 마스터 클래스',
+          desc: '실무자가 즉각 도입할 수 있는 맞춤형 AI 업무 에이전트 구축 및 교육 과정',
+          image: 'https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=800&q=80',
+          videoUrl: '#',
+          tag: 'AI 교육'
+        }
+      ];
+
+      const services = [
+        {
+          id: 'service-1',
+          title: '회사홍보 영상 제작',
+          desc: '기업의 철학, 사업 모델, 독보적 강점을 한눈에 파악할 수 있는 고해상도 브랜드 홍보 영상 및 기업 소개 필름을 제작합니다.',
+          features: ['스토리보드 기획', '시네마틱 연출', '모션 그래픽스', 'B2B 최적화 톤앤매너'],
+          bgColor: 'bg-white'
+        },
+        {
+          id: 'service-2',
+          title: '제품홍보 영상 제작',
+          desc: '제품의 직관적 사용법, 강점, 셀링 포인트를 감각적으로 시각화하여 잠재 고객의 전환율을 극대화하는 커머셜 비디오를 제공합니다.',
+          features: ['3D 디테일 컷', '실사용 시나리오 연출', '바이럴 숏폼 패키지', '특장점 강조 그래픽'],
+          bgColor: 'bg-[#F7F7FB]'
+        },
+        {
+          id: 'service-3',
+          title: 'AI 활용 기업 컨설팅',
+          desc: '업무 전반, 마케팅, 콘텐츠 제작 시스템에 인공지능을 실무 맞춤형으로 융합하여 업무 생산성을 극적으로 혁신하는 진단 솔루션을 제공합니다.',
+          features: ['워크플로우 분석', '맞춤형 AI 도구 매핑', '자동화 파이프라인 설계', '생산성 성과 리포트'],
+          bgColor: 'bg-[#F7F7FB]'
+        },
+        {
+          id: 'service-4',
+          title: 'AI 활용 교육',
+          desc: 'ChatGPT, Gemini, Midjourney 및 영상 생성 AI 등 최고의 최신 AI 솔루션을 활용하여 내부 직원들이 스스로 결과물을 제작할 수 있도록 트레이닝합니다.',
+          features: ['프롬프트 엔지니어링 실습', 'AI 디자인/영상 연계', '사내 맞춤형 실무 가이드라인', '1:1 피드백 세션'],
+          bgColor: 'bg-white'
+        }
+      ];
+
+      const processes = [
+        { step: '01', title: '상담 및 분석', desc: '기업의 니즈 파악 및 타겟 분석' },
+        { step: '02', title: '브랜드 이해', desc: '핵심 아이덴티티 및 소구점 정립' },
+        { step: '03', title: '콘텐츠 기획', desc: '크리에이티브 컨셉 및 뼈대 설계' },
+        { step: '04', title: 'AI 스크립트 구성', desc: 'AI 분석 기반 고도화된 대본 작성' },
+        { step: '05', title: '영상 제작/편집', desc: '세련된 감각의 비주얼 크리에이션' },
+        { step: '06', title: '피드백 반영', desc: '고객사 의견 수렴 및 완성도 극대화' },
+        { step: '07', title: '납품 및 가이드', desc: '최종 납품 및 실전 활용 방안 제언' }
+      ];
+
+      useEffect(() => {
+        const handleScroll = () => {
+          const sections = ['home', 'about', 'services', 'portfolio', 'process', 'contact'];
+          const scrollPosition = window.scrollY + 250;
+
+          for (const section of sections) {
+            const el = document.getElementById(section);
+            if (el) {
+              const top = el.offsetTop;
+              const height = el.offsetHeight;
+              if (scrollPosition >= top && scrollPosition < top + height) {
+                setActiveSection(section);
+                break;
+              }
+            }
+          }
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+      }, []);
+
+      const scrollTo = (id) => {
+        setIsMenuOpen(false);
+        const element = document.getElementById(id);
+        if (element) {
+          window.scrollTo({
+            top: element.offsetTop - 80,
+            behavior: 'smooth'
+          });
+        }
+      };
+
+      const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+      };
+
+      // 앱스스크립트 전송 핸들러 고도화
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        setValidationError('');
+        
+        if (!formData.company || !formData.name || !formData.email || !formData.phone) {
+          setValidationError("필수 기입 항목을 모두 채워주십시오.");
+          return;
+        }
+
+        setIsSubmitting(true);
+
+        // Google Sheets 스크립트 전송 파라미터 빌드
+        const submitParams = new URLSearchParams();
+        submitParams.append('company', formData.company);
+        submitParams.append('name', formData.name);
+        submitParams.append('email', formData.email);
+        submitParams.append('phone', formData.phone);
+        submitParams.append('service', formData.service);
+        submitParams.append('message', formData.message);
+
+        fetch(WEB_APP_URL, {
+          method: 'POST',
+          mode: 'no-cors', // 타 도메인(Google) 전송을 위한 모드 설정
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: submitParams.toString()
+        })
+        .then(() => {
+          setIsSubmitting(false);
+          setIsSubmitted(true);
+        })
+        .catch(err => {
+          console.error(err);
+          setValidationError("네트워크 전송 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+          setIsSubmitting(false);
+        });
+      };
+
+      const resetForm = () => {
+        setFormData({
+          company: '',
+          name: '',
+          email: '',
+          phone: '',
+          service: '회사홍보 영상',
+          message: '',
+        });
+        setIsSubmitted(false);
+        setValidationError('');
+      };
+
+      const filteredPortfolio = portfolioFilter === 'All' 
+        ? portfolioData 
+        : portfolioData.filter(item => item.category === portfolioFilter);
+
+      return (
+        <div className="min-h-screen bg-white text-[#111827] font-sans selection:bg-[#A78BFA] selection:text-white">
+          
+          {/* --- HEADER --- */}
+          <header className="fixed top-0 left-0 w-full bg-white/90 backdrop-blur-md z-40 border-b border-gray-100 shadow-sm transition-all duration-300">
+            <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+              <button onClick={() => scrollTo('home')} className="flex items-center space-x-3 group text-left">
+                <LogoIcon />
+                <div>
+                  <span className="text-xl font-extrabold tracking-tight text-[#3B0A57] block group-hover:text-[#5B21B6] transition-colors">
+                    Nextcontents
+                  </span>
+                  <span className="text-[10px] text-gray-400 font-medium tracking-widest block uppercase -mt-1">
+                    넥스트컨텐츠
+                  </span>
+                </div>
+              </button>
+
+              <nav className="hidden md:flex items-center space-x-8">
+                {['about', 'services', 'portfolio', 'process', 'contact'].map((item) => (
+                  <button
+                    key={item}
+                    onClick={() => scrollTo(item)}
+                    className={`text-sm font-semibold tracking-wide transition-all uppercase ${
+                      activeSection === item 
+                        ? 'text-[#5B21B6] border-b-2 border-[#5B21B6] pb-1' 
+                        : 'text-gray-500 hover:text-[#3B0A57]'
+                    }`}
+                  >
+                    {item}
+                  </button>
+                ))}
+              </nav>
+
+              <div className="hidden md:block">
+                <button
+                  onClick={() => scrollTo('contact')}
+                  className="bg-[#3B0A57] hover:bg-[#5B21B6] text-white px-6 py-2.5 rounded-full text-sm font-bold tracking-wide shadow-md hover:shadow-lg transition-all duration-300"
+                >
+                  상담 문의하기
+                </button>
+              </div>
+
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="md:hidden p-2 text-gray-600 hover:text-[#3B0A57]"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {isMenuOpen ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+                  )}
+                </svg>
+              </button>
+            </div>
+
+            {isMenuOpen && (
+              <div className="md:hidden bg-white border-t border-gray-100 py-4 px-6 space-y-3 shadow-xl">
+                {['about', 'services', 'portfolio', 'process', 'contact'].map((item) => (
+                  <button
+                    key={item}
+                    onClick={() => scrollTo(item)}
+                    className="block w-full text-left py-2.5 text-base font-semibold text-gray-700 hover:text-[#3B0A57] border-b border-gray-50 last:border-0"
+                  >
+                    {item.toUpperCase()}
+                  </button>
+                ))}
+                <button
+                  onClick={() => scrollTo('contact')}
+                  className="w-full bg-[#3B0A57] text-white text-center py-3 rounded-xl text-sm font-bold shadow-md"
+                >
+                  상담 문의하기
+                </button>
+              </div>
+            )}
+          </header>
+
+          {/* --- HERO SECTION --- */}
+          <section id="home" className="relative pt-32 pb-24 md:pt-48 md:pb-36 bg-gradient-to-b from-[#3B0A57]/5 via-white to-white overflow-hidden">
+            <div className="absolute top-1/4 right-0 w-96 h-96 bg-[#A78BFA]/10 rounded-full blur-3xl -z-10"></div>
+            <div className="absolute bottom-10 left-10 w-72 h-72 bg-[#5B21B6]/5 rounded-full blur-2xl -z-10"></div>
+
+            <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+              <div className="lg:col-span-7 text-left space-y-6">
+                <div className="inline-flex items-center space-x-2 bg-[#3B0A57]/10 text-[#3B0A57] px-4 py-1.5 rounded-full text-xs font-bold tracking-wider uppercase">
+                  <span>B2B Content Execution Partner</span>
+                </div>
+                
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-[#111827] leading-[1.15] tracking-tight">
+                  AI와 감성 사이의 <br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#3B0A57] to-[#5B21B6]">
+                    콘텐츠를 만듭니다
+                  </span>
+                </h1>
+
+                <p className="text-lg md:text-xl text-gray-600 font-medium leading-relaxed">
+                  생각을 영상으로, 브랜드를 콘텐츠로. <br />
+                  기업의 이야기를 감성적으로 다듬고 제품의 독창적인 가치를 명확히 시각화합니다.
+                </p>
+
+                <p className="text-sm md:text-base text-gray-500 leading-relaxed max-w-xl">
+                  Nextcontents는 단순한 영상 제작을 넘어 회사홍보 영상, 제품홍보 영상, 그리고 사내 생성형 AI 구축 교육과 비즈니스 컨설팅까지 원스톱으로 지원하는 최적의 B2B 전략적 동반자입니다.
+                </p>
+
+                <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                  <button
+                    onClick={() => scrollTo('contact')}
+                    className="bg-[#3B0A57] hover:bg-[#5B21B6] text-white px-8 py-4 rounded-xl font-bold text-center tracking-wide shadow-lg hover:shadow-xl transition-all duration-300"
+                  >
+                    회사홍보 영상 문의하기
+                  </button>
+                  <button
+                    onClick={() => scrollTo('contact')}
+                    className="bg-white border-2 border-gray-200 hover:border-[#3B0A57] hover:text-[#3B0A57] text-gray-700 px-8 py-4 rounded-xl font-bold text-center tracking-wide transition-all duration-300"
+                  >
+                    AI 교육 상담하기
+                  </button>
+                </div>
+              </div>
+
+              <div className="lg:col-span-5 relative flex justify-center items-center">
+                <div className="relative w-full max-w-md aspect-square bg-gradient-to-tr from-[#3B0A57] to-[#5B21B6] rounded-3xl p-8 shadow-2xl flex flex-col justify-between overflow-hidden">
+                  <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-xl"></div>
+                  
+                  <div className="flex justify-between items-start">
+                    <div className="bg-white/20 backdrop-blur-md rounded-2xl p-3 text-white">
+                      <LogoIcon />
+                    </div>
+                    <div className="text-right text-white/70 text-xs tracking-widest font-mono">
+                      SECURE & SMART
+                    </div>
+                  </div>
+
+                  <div className="my-8 space-y-4">
+                    <div className="flex items-center space-x-3 bg-white/10 backdrop-blur-sm p-3.5 rounded-2xl border border-white/10">
+                      <div className="w-3 h-3 rounded-full bg-[#A78BFA] animate-pulse"></div>
+                      <div className="flex-1">
+                        <p className="text-white text-xs font-semibold">AI 스크립트 고도화 분석 완료</p>
+                        <div className="w-full bg-white/20 h-1.5 rounded-full mt-2 overflow-hidden">
+                          <div className="bg-gradient-to-r from-[#A78BFA] to-white h-full w-[85%]"></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-3 bg-white/10 backdrop-blur-sm p-3.5 rounded-2xl border border-white/10 ml-6">
+                      <div className="w-3 h-3 rounded-full bg-emerald-400"></div>
+                      <div className="flex-1">
+                        <p className="text-white text-xs font-semibold">브랜드 시네마틱 프레임 편집 중</p>
+                        <div className="w-full bg-white/20 h-1.5 rounded-full mt-2 overflow-hidden">
+                          <div className="bg-emerald-400 h-full w-[60%]"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-end text-white">
+                    <div>
+                      <h3 className="text-sm font-bold tracking-wide">Nextcontents Platform</h3>
+                      <p className="text-[10px] text-white/60">© 2026 NEXTCONTENTS</p>
+                    </div>
+                    <span className="text-xs bg-[#A78BFA] text-[#3B0A57] font-extrabold px-3 py-1 rounded-full">
+                      EST. 2023
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* --- ABOUT SECTION --- */}
+          <section id="about" className="py-24 md:py-32 bg-white">
+            <div className="max-w-7xl mx-auto px-6">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
+                <div className="lg:col-span-5 space-y-4">
+                  <div className="relative rounded-3xl overflow-hidden shadow-xl aspect-[4/3] bg-gradient-to-br from-gray-100 to-gray-200 border border-gray-100 flex items-center justify-center">
+                    <img 
+                      src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80" 
+                      alt="협업하는 넥스트컨텐츠 팀" 
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-[#3B0A57]/30 mix-blend-multiply"></div>
+                    <div className="z-10 text-center text-white p-6">
+                      <p className="text-sm tracking-widest font-bold uppercase mb-1">CONNECTING AI & EMOTION</p>
+                      <p className="text-2xl font-bold">인간의 감성과 기술의 융합</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="lg:col-span-7 text-left space-y-8">
+                  <div className="space-y-4">
+                    <span className="text-sm font-extrabold text-[#5B21B6] tracking-wider uppercase block">About Brand</span>
+                    <h2 className="text-3xl md:text-4xl font-extrabold text-[#111827] tracking-tight leading-snug">
+                      기술과 감성을 연결하는 <br className="hidden md:block"/>
+                      콘텐츠 파트너, 넥스트컨텐츠입니다.
+                    </h2>
+                    <p className="text-lg text-gray-600 leading-relaxed font-medium">
+                      넥스트컨텐츠는 기업이 전하고 싶은 메시지를 정밀하게 분석하고 구조화하여, 고객사의 잠재 고객이 가장 직관적으로 흡수할 수 있는 프리미엄 콘텐츠로 재생산합니다.
+                    </p>
+                    <p className="text-gray-500 leading-relaxed">
+                      단순히 예쁜 영상을 촬영하는 것에 그치지 않습니다. 우리는 브랜드의 정교한 방향성 설정, 타겟 고객이 이해할 핵심 메시지의 디자인, 그리고 AI 신기술 활용 역량을 고루 갖추어 사내 AI 트랜스포메이션 실행 방안까지 전방위로 설계하고 지원합니다.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
+                    {[
+                      { title: '기업 메시지 구조화', desc: '복잡한 비즈니스 개념을 타겟 맞춤형 스토리로 축약' },
+                      { title: 'AI 기반 콘텐츠 기획', desc: 'AI 데이터 분석을 적용하여 매끄럽고 빠른 원고/기획 도출' },
+                      { title: '영상 제작과 교육 결합', desc: '산출물 제공에 그치지 않고 자생적인 AI 인하우스 역량 강화' }
+                    ].map((point, index) => (
+                      <div key={index} className="bg-[#F7F7FB] p-6 rounded-2xl border border-gray-100 shadow-sm">
+                        <span className="w-8 h-8 rounded-full bg-[#3B0A57]/10 text-[#3B0A57] font-bold text-sm flex items-center justify-center mb-4">
+                          {index + 1}
+                        </span>
+                        <h4 className="text-base font-extrabold text-[#111827] mb-2">{point.title}</h4>
+                        <p className="text-xs text-gray-500 leading-relaxed">{point.desc}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* --- SERVICES SECTION --- */}
+          <section id="services" className="py-24 md:py-32 bg-[#F7F7FB]">
+            <div className="max-w-7xl mx-auto px-6">
+              <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
+                <span className="text-sm font-extrabold text-[#5B21B6] tracking-wider uppercase">Our Core Services</span>
+                <h2 className="text-3xl md:text-5xl font-extrabold text-[#111827] tracking-tight">
+                  B2B 맞춤형 콘텐츠 솔루션
+                </h2>
+                <p className="text-gray-500 font-medium">
+                  기획부터 고품질 비주얼 아웃풋, 임직원 인공지능 트레이닝까지 핵심 서비스를 유기적으로 제공합니다.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {services.map((service) => (
+                  <div 
+                    key={service.id} 
+                    className={`${service.bgColor} p-8 md:p-10 rounded-3xl border border-gray-200/50 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group`}
+                  >
+                    <div>
+                      <div className="flex justify-between items-start mb-6">
+                        <h3 className="text-xl md:text-2xl font-extrabold text-[#111827] tracking-tight group-hover:text-[#5B21B6] transition-colors">
+                          {service.title}
+                        </h3>
+                        <span className="text-xs font-mono font-bold text-gray-400 uppercase tracking-widest bg-gray-100 px-3 py-1 rounded-full">
+                          B2B Service
+                        </span>
+                      </div>
+                      <p className="text-gray-600 leading-relaxed text-sm md:text-base mb-8">
+                        {service.desc}
+                      </p>
+                    </div>
+
+                    <div className="space-y-3 pt-6 border-t border-gray-100">
+                      <p className="text-xs font-extrabold text-[#3B0A57] uppercase tracking-wider">주요 산출 및 과정</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {service.features.map((feature, fIdx) => (
+                          <div key={fIdx} className="flex items-center space-x-2 text-xs text-gray-500">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#5B21B6]"></span>
+                            <span>{feature}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* --- WHY NEXTCONTENTS SECTION --- */}
+          <section className="py-24 md:py-32 bg-white relative overflow-hidden">
+            <div className="absolute top-1/2 left-0 w-80 h-80 bg-[#A78BFA]/5 rounded-full blur-3xl"></div>
+            <div className="max-w-7xl mx-auto px-6">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
+                <div className="lg:col-span-5 text-left space-y-6">
+                  <span className="text-sm font-extrabold text-[#5B21B6] tracking-wider uppercase block">Competitive Edge</span>
+                  <h2 className="text-3xl md:text-4xl font-extrabold text-[#111827] tracking-tight leading-snug">
+                    왜 기업들은 <br />
+                    Nextcontents를 선택하는가?
+                  </h2>
+                  <p className="text-gray-600 leading-relaxed">
+                    단일성 외주 제작 업체를 넘어, 우리는 고객사의 비즈니스 방향성을 정확히 조명하는 비즈니스 파트너로 행동합니다. 기획안 작성 시간 단축과 효율 극대화를 직접 경험하십시오.
+                  </p>
+                  <div className="pt-4">
+                    <button 
+                      onClick={() => scrollTo('contact')}
+                      className="inline-flex items-center space-x-2 bg-[#3B0A57] hover:bg-[#5B21B6] text-white px-6 py-3.5 rounded-xl font-bold transition-all shadow-md"
+                    >
+                      <span>솔루션 문의하기</span>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="lg:col-span-7 space-y-4">
+                  {[
+                    { title: '기업 실무를 이해하는 콘텐츠 기획', desc: 'B2B 시장에 완벽히 정렬된 비즈니스 랭귀지와 구조로 고객과 의사소통합니다.' },
+                    { title: 'AI 활용 혁신 프로세스', desc: '생성형 AI를 탑재하여 시안 분석과 대본 초안 작업을 빠르고 밀도 있게 리드합니다.' },
+                    { title: '영상 제작과 비즈니스 컨설팅 병행', desc: '디자인 품질 확보는 물론, 기업의 전반적인 AI 인프라 안착까지 함께 연구합니다.' },
+                    { title: 'B2B 제안용 메시지 특화 설계', desc: '단순 흥미 위주의 영상이 아닌 제안서 및 IR 자료 맞춤형으로 구조를 구축합니다.' },
+                    { title: '실무진의 지속 가능한 교육 지원', desc: '임직원 맞춤형 강의를 병행하여 기업 내부에 즉각적인 디지털 내재화를 보장합니다.' }
+                  ].map((item, idx) => (
+                    <div 
+                      key={idx} 
+                      className="bg-white hover:bg-[#F7F7FB] p-6 rounded-2xl border border-gray-100 hover:border-gray-200 shadow-sm transition-all duration-300 flex items-start space-x-4"
+                    >
+                      <div className="flex-shrink-0"><CheckIcon /></div>
+                      <div>
+                        <h4 className="text-base font-extrabold text-[#111827]">{item.title}</h4>
+                        <p className="text-xs text-gray-500 mt-1 leading-relaxed">{item.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* --- PORTFOLIO PREVIEW SECTION --- */}
+          <section id="portfolio" className="py-24 md:py-32 bg-[#F7F7FB]">
+            <div className="max-w-7xl mx-auto px-6">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6">
+                <div className="space-y-4 text-left">
+                  <span className="text-sm font-extrabold text-[#5B21B6] tracking-wider uppercase block">Our Portfolio</span>
+                  <h2 className="text-3xl md:text-4xl font-extrabold text-[#111827] tracking-tight">
+                    콘텐츠는 말보다 결과로 보여줍니다
+                  </h2>
+                  <p className="text-sm md:text-base text-gray-500 font-medium">
+                    우리가 도출한 성과물을 확인해 보십시오. 카테고리 필터를 통해 정돈해서 확인하실 수 있습니다.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-2 bg-white p-1.5 rounded-full border border-gray-200 self-start md:self-end">
+                  {['All', 'Video', 'AI', 'Education'].map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => setPortfolioFilter(cat)}
+                      className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                        portfolioFilter === cat ? 'bg-[#3B0A57] text-white shadow-sm' : 'text-gray-500 hover:text-[#3B0A57]'
+                      }`}
+                    >
+                      {cat === 'All' ? '전체 보기' : cat === 'Video' ? '영상 제작' : cat === 'AI' ? '컨설팅' : 'AI 교육'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {filteredPortfolio.map((item) => (
+                  <div 
+                    key={item.id} 
+                    className="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 group"
+                  >
+                    <div className="relative aspect-video bg-gray-900 overflow-hidden flex items-center justify-center">
+                      <img 
+                        src={item.image} 
+                        alt={item.title} 
+                        className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-700"
+                      />
+                      <div className="absolute inset-0 bg-[#3B0A57]/20 mix-blend-multiply"></div>
+                      <span className="absolute top-4 left-4 bg-white/90 backdrop-blur-md text-[#3B0A57] text-xs font-extrabold px-3 py-1.5 rounded-full shadow-sm z-10">
+                        {item.tag}
+                      </span>
+                      <div className="relative z-10 bg-[#3B0A57]/90 p-4 rounded-full shadow-lg transition-all duration-300 cursor-pointer">
+                        <PlayIcon />
+                      </div>
+                    </div>
+
+                    <div className="p-6 md:p-8 text-left space-y-3">
+                      <h4 className="text-lg md:text-xl font-extrabold text-[#111827] group-hover:text-[#5B21B6] transition-colors">
+                        {item.title}
+                      </h4>
+                      <p className="text-sm text-gray-500 leading-relaxed">
+                        {item.desc}
+                      </p>
+                      <div className="pt-4 flex items-center justify-between">
+                        <span className="text-xs text-gray-400 font-mono tracking-wider">PROJECT NO. 0{item.id}</span>
+                        <button onClick={() => scrollTo('contact')} className="text-[#3B0A57] hover:text-[#5B21B6] font-bold text-xs tracking-wider uppercase">
+                          상세 기획 상담 요청 →
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* --- PROCESS SECTION --- */}
+          <section id="process" className="py-24 md:py-32 bg-white">
+            <div className="max-w-7xl mx-auto px-6">
+              <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
+                <span className="text-sm font-extrabold text-[#5B21B6] tracking-wider uppercase">Our Work Process</span>
+                <h2 className="text-3xl md:text-4xl font-extrabold text-[#111827] tracking-tight">
+                  체계적이고 정밀한 협업 단계
+                </h2>
+                <p className="text-gray-500 font-medium">
+                  첫 상담부터 최종 산출물 완성 및 사후 관리 가이드 제공까지 완벽하게 정의된 로드맵을 따릅니다.
+                </p>
+              </div>
+
+              <div className="hidden lg:grid grid-cols-7 gap-4 relative">
+                <div className="absolute top-[35px] left-[5%] right-[5%] h-0.5 bg-gray-100 -z-10"></div>
+                {processes.map((p, idx) => (
+                  <div key={idx} className="text-center space-y-4 px-2 group">
+                    <div className="relative mx-auto w-[70px] h-[70px] rounded-full bg-[#F7F7FB] border border-gray-100 flex items-center justify-center font-mono font-extrabold text-sm text-[#3B0A57] group-hover:bg-[#3B0A57] group-hover:text-white transition-all duration-300 shadow-sm">
+                      {p.step}
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-extrabold text-[#111827]">{p.title}</h4>
+                      <p className="text-[11px] text-gray-400 leading-normal">{p.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid lg:hidden grid-cols-1 md:grid-cols-2 gap-4">
+                {processes.map((p, idx) => (
+                  <div key={idx} className="bg-[#F7F7FB] p-6 rounded-2xl border border-gray-100 flex items-center space-x-5 text-left">
+                    <span className="text-xl font-mono font-extrabold text-[#3B0A57] bg-[#3B0A57]/5 w-12 h-12 flex items-center justify-center rounded-xl">
+                      {p.step}
+                    </span>
+                    <div>
+                      <h4 className="text-sm font-extrabold text-[#111827]">{p.title}</h4>
+                      <p className="text-xs text-gray-400 mt-1">{p.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* --- CONTACT CTA & FORM SECTION --- */}
+          <section id="contact" className="py-24 md:py-32 bg-gradient-to-b from-white to-[#3B0A57]/5 relative">
+            <div className="max-w-4xl mx-auto px-6">
+              <div className="text-center mb-12 space-y-4">
+                <span className="text-sm font-extrabold text-[#5B21B6] tracking-wider uppercase">Contact Us</span>
+                <h2 className="text-3xl md:text-4xl font-extrabold text-[#111827] tracking-tight">
+                  우리 회사에 맞는 콘텐츠가 필요하신가요?
+                </h2>
+                <p className="text-gray-500 font-medium max-w-2xl mx-auto">
+                  브랜드 가치 확보, 영상 제작 계획, AI 실무 교육 상담 등 모든 고민을 신속히 해결해 드립니다. 아래 정보를 작성해주시면 담당 부서에서 신속히 검토하여 회신을 드립니다.
+                </p>
+              </div>
+
+              <div className="bg-white rounded-3xl p-8 md:p-12 shadow-xl border border-gray-100">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  {validationError && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm text-left">
+                      ⚠ {validationError}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="text-left space-y-2">
+                      <label htmlFor="company" className="text-xs font-bold text-gray-700 tracking-wider">
+                        기업명 <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text" id="company" name="company" value={formData.company} onChange={handleInputChange}
+                        placeholder="예: 주식회사 넥스트컨텐츠"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#A78BFA] text-sm text-[#111827]"
+                        required
+                      />
+                    </div>
+
+                    <div className="text-left space-y-2">
+                      <label htmlFor="name" className="text-xs font-bold text-gray-700 tracking-wider">
+                        담당자명 <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text" id="name" name="name" value={formData.name} onChange={handleInputChange}
+                        placeholder="예: 홍길동"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#A78BFA] text-sm text-[#111827]"
+                        required
+                      />
+                    </div>
+
+                    <div className="text-left space-y-2">
+                      <label htmlFor="email" className="text-xs font-bold text-gray-700 tracking-wider">
+                        이메일 주소 <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="email" id="email" name="email" value={formData.email} onChange={handleInputChange}
+                        placeholder="example@nextcontents.com"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#A78BFA] text-sm text-[#111827]"
+                        required
+                      />
+                    </div>
+
+                    <div className="text-left space-y-2">
+                      <label htmlFor="phone" className="text-xs font-bold text-gray-700 tracking-wider">
+                        연락처 <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="tel" id="phone" name="phone" value={formData.phone} onChange={handleInputChange}
+                        placeholder="010-0000-0000"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#A78BFA] text-sm text-[#111827]"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="text-left space-y-2">
+                    <label htmlFor="service" className="text-xs font-bold text-gray-700 tracking-wider block">
+                      관심 서비스 분야 <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <select
+                        id="service" name="service" value={formData.service} onChange={handleInputChange}
+                        className="w-full px-4 py-3.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#A78BFA] text-sm text-[#111827] bg-white appearance-none cursor-pointer"
+                      >
+                        <option value="회사홍보 영상">회사홍보 영상 제작</option>
+                        <option value="제품홍보 영상">제품홍보 영상 제작</option>
+                        <option value="AI 기업교육">AI 활용 사내 기업교육</option>
+                        <option value="AI 컨설팅">AI 기반 비즈니스 효율화 컨설팅</option>
+                        <option value="기타">기타 파트너십 제안</option>
+                      </select>
+                      <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-gray-400">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-left space-y-2">
+                    <label htmlFor="message" className="text-xs font-bold text-gray-700 tracking-wider">
+                      상세 문의 내용 <span className="text-gray-400">(선택)</span>
+                    </label>
+                    <textarea
+                      id="message" name="message" value={formData.message} onChange={handleInputChange} rows="4"
+                      placeholder="의뢰 목적, 예상 제작 일정, 희망하시는 분량 등 자유롭게 기입해주시면 상세 상담에 도움이 됩니다."
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#A78BFA] text-sm text-[#111827] resize-none"
+                    ></textarea>
+                  </div>
+
+                  <p className="text-[11px] text-gray-400 text-left">
+                    * 상담 신청을 위해 수집하는 상호, 담당자 연락처 등의 정보는 문의 처리에 한하여 안전하게 검토 및 사용됩니다.
+                  </p>
+
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full bg-[#3B0A57] hover:bg-[#5B21B6] disabled:bg-gray-400 text-white py-4 rounded-xl font-bold tracking-wide shadow-lg transition-all duration-300 text-sm flex items-center justify-center space-x-2"
+                    >
+                      {isSubmitting ? (
+                        <span>신청서 전송 중...</span>
+                      ) : (
+                        <span>프로젝트 상담 신청서 접수하기</span>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </section>
+
+          {/* --- FOOTER --- */}
+          <footer className="bg-[#111827] text-white py-16">
+            <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-12 gap-12">
+              <div className="md:col-span-5 text-left space-y-4">
+                <div className="flex items-center space-x-3">
+                  <LogoIcon />
+                  <span className="text-xl font-extrabold tracking-tight">Nextcontents</span>
+                </div>
+                <p className="text-sm text-gray-400 max-w-sm leading-relaxed">
+                  인공지능과 풍부한 아날로그 감성을 결합해, 기업의 진정성 있는 브랜드 스토리와 제품 가치를 프리미엄 비주얼 솔루션으로 구현합니다.
+                </p>
+              </div>
+
+              <div className="md:col-span-3 text-left space-y-4">
+                <h4 className="text-xs font-bold tracking-widest text-[#A78BFA] uppercase">Quick Navigation</h4>
+                <div className="space-y-2">
+                  {['about', 'services', 'portfolio', 'process', 'contact'].map((link) => (
+                    <button key={link} onClick={() => scrollTo(link)} className="block text-sm text-gray-400 hover:text-white transition-colors uppercase">
+                      {link}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="md:col-span-4 text-left space-y-4 text-sm text-gray-400">
+                <h4 className="text-xs font-bold tracking-widest text-[#A78BFA] uppercase">Corporate Information</h4>
+                <div className="space-y-1.5">
+                  <p>상호: (주)넥스트컨텐츠 | 대표자: 넥스트컨텐츠</p>
+                  <p>사업분야: B2B 기업홍보, 제품소개, AI 컨설팅 및 실무 교육</p>
+                  <p>이메일: partner@nextcontents.com</p>
+                  <p>주소: 경기도 하남시 (대표 오피스 및 스튜디오)</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="max-w-7xl mx-auto px-6 pt-12 mt-12 border-t border-gray-800 text-center text-xs text-gray-500 flex flex-col sm:flex-row justify-between items-center gap-4">
+              <p>© 2026 Nextcontents. All rights reserved.</p>
+              <div className="flex space-x-6">
+                <a href="#" className="hover:text-white">이용약관</a>
+                <a href="#" className="hover:text-white font-bold text-[#A78BFA]">개인정보처리방침</a>
+              </div>
+            </div>
+          </footer>
+
+          {/* --- SUCCESS MODAL --- */}
+          {isSubmitted && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center space-y-6 shadow-2xl">
+                <div className="w-16 h-16 bg-[#3B0A57]/10 text-[#3B0A57] rounded-full flex items-center justify-center mx-auto text-3xl">✓</div>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-extrabold text-[#111827]">상담 신청서 접수 완료</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">
+                    구글 스프레드시트에 성공적으로 데이터가 기록되었습니다. <br />
+                    기재해주신 <span className="font-bold text-[#3B0A57]">{formData.email}</span> 주소로 신속하게 연락드리겠습니다.
+                  </p>
+                </div>
+                <button onClick={resetForm} className="w-full bg-[#3B0A57] hover:bg-[#5B21B6] text-white py-3.5 rounded-xl font-bold tracking-wide">
+                  확인
+                </button>
+              </div>
+            </div>
+          )}
+          
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
